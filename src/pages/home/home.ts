@@ -1,7 +1,13 @@
 import { Component } from '@angular/core';
-import { NavController, AlertController} from 'ionic-angular';
+import { NavController, AlertController } from 'ionic-angular';
 import { Observable } from 'rxjs/Observable';
 import { YoutubeProvider } from '../../providers/youtube/youtube';
+
+import { FcmProvider } from '../../providers/fcm/fcm';
+
+import { ToastController } from 'ionic-angular';
+import { Subject } from 'rxjs/Subject';
+import { tap } from 'rxjs/operators';
 
 @Component({
   selector: 'page-home',
@@ -10,9 +16,15 @@ import { YoutubeProvider } from '../../providers/youtube/youtube';
 export class HomePage {
   channelId = '';
   playlists: Observable<any[]>;
- 
-  constructor(public navCtrl: NavController, private ytProvider: YoutubeProvider, private alertCtrl: AlertController) { }
- 
+
+  constructor(
+    public navCtrl: NavController,
+    private ytProvider: YoutubeProvider,
+    private alertCtrl: AlertController,
+    public fcm: FcmProvider,
+    public toastCtrl: ToastController
+  ) { }
+
   searchPlaylists() {
     this.playlists = this.ytProvider.getPlaylistsForChannel(this.channelId);
     this.playlists.subscribe(data => {
@@ -26,8 +38,25 @@ export class HomePage {
       alert.present();
     })
   }
- 
+
   openPlaylist(id) {
-    this.navCtrl.push('PlaylistPage', {id: id});
+    this.navCtrl.push('PlaylistPage', { id: id });
+  }
+
+  ionViewDidLoad() {
+
+    // Get a FCM token
+    this.fcm.getToken()
+
+    this.fcm.listenToNotifications().pipe(
+      tap(msg => {
+        const toast = this.toastCtrl.create({
+          message: msg.body,
+          duration: 3000
+        });
+        toast.present();
+      })
+    )
+      .subscribe()
   }
 }
